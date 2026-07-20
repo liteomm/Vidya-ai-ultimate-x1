@@ -14,49 +14,50 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: "21"
           cache: gradle
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install dependencies
+      - name: Install NPM Dependencies
         run: npm install
 
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew
+      - name: Make gradlew executable
+        working-directory: android
+        run: chmod +x gradlew
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/vidya-release-key.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/vidya-release-key.keystore
 
-      - name: Build Release APK
+      - name: Build Signed APK
         working-directory: android
         run: |
           ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=app/vidya-release-key.keystore \
-            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
+          -Pandroid.injected.signing.store.file=app/vidya-release-key.keystore \
+          -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+          -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+          -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
 
-      - name: Build Release AAB
+      - name: Build Signed AAB
         working-directory: android
         run: |
           ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=app/vidya-release-key.keystore \
-            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
+          -Pandroid.injected.signing.store.file=app/vidya-release-key.keystore \
+          -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+          -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+          -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
